@@ -5,6 +5,8 @@ require_role('rider');
 
 // Get this rider's rider_id
 $rider_id = null;
+/** @var mysqli $conn */
+$stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
 $stmt = mysqli_prepare($conn, "SELECT rider_id, vehicle_type, availability_status FROM rider_profiles WHERE user_id = ?");
 mysqli_stmt_bind_param($stmt, 'i', $_SESSION['user_id']);
 mysqli_stmt_execute($stmt);

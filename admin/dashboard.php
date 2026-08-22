@@ -5,6 +5,8 @@ require_role('admin');
 
 // Pending seller approvals
 $pending_sellers = 0;
+/** @var mysqli $conn */
+$stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
 $result = mysqli_query($conn, "SELECT COUNT(*) AS cnt FROM seller_profiles WHERE approval_status = 'pending'");
 if ($row = mysqli_fetch_assoc($result)) {
     $pending_sellers = $row['cnt'];

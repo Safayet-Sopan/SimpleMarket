@@ -14,6 +14,8 @@ function cleanInput($data)
 $user_id = $_SESSION['user_id'];
 
 // Fetch current user + rider profile data (joined)
+/** @var mysqli $conn */
+$stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
 $stmt = mysqli_prepare(
     $conn,
     "SELECT u.full_name, u.email, u.phone, rp.rider_id, rp.vehicle_type, rp.vehicle_plate, rp.vehicle_capacity, rp.availability_status

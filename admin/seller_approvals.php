@@ -17,6 +17,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         $seller_id = (int) $seller_id;
 
         // Get the user_id + shop_name tied to this seller_id, to update users table + send notification
+        /** @var mysqli $conn */
+        $stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
         $stmt = mysqli_prepare($conn, "SELECT user_id, shop_name FROM seller_profiles WHERE seller_id = ?");
         mysqli_stmt_bind_param($stmt, 'i', $seller_id);
         mysqli_stmt_execute($stmt);

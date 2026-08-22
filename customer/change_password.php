@@ -16,6 +16,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // passwords are NOT run through cleanInput/htmlspecialchars — that would corrupt special characters
 
     // Fetch current hash
+    /** @var mysqli $conn */
+    $stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
     $stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
     mysqli_stmt_bind_param($stmt, 'i', $user_id);
     mysqli_stmt_execute($stmt);

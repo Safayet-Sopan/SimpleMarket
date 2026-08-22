@@ -16,6 +16,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     // passwords are NOT run through cleanInput/htmlspecialchars — that would corrupt special characters
 
     // Fetch current hash
+    /** @var mysqli $conn */
+    $stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
     $stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
     mysqli_stmt_bind_param($stmt, 'i', $user_id);
     mysqli_stmt_execute($stmt);
@@ -61,12 +63,14 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 ?>
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>Change Password — SimpleMarket</title>
     <link rel="stylesheet" href="../assets/css/style.css">
     <link rel="stylesheet" href="../assets/css/seller.css">
 </head>
+
 <body>
     <h1>Change Password</h1>
 
@@ -93,4 +97,5 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <a href="profile.php">Back to Profile</a>
     <a href="dashboard.php">Back to Dashboard</a>
 </body>
+
 </html>
