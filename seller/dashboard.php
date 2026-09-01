@@ -45,6 +45,13 @@ if ($seller_id) {
     $pending_orders = mysqli_fetch_assoc($r)['cnt'];
     mysqli_stmt_close($stmt);
 }
+// Unread notifications, refreshed live by assets/js/main.js
+$unread_count = 0;
+$stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = ? AND is_read = 0");
+mysqli_stmt_bind_param($stmt, 'i', $_SESSION['user_id']);
+mysqli_stmt_execute($stmt);
+$unread_count = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['cnt'];
+mysqli_stmt_close($stmt);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -80,6 +87,12 @@ if ($seller_id) {
     </div>
 
     <a href="price_bidding.php">Price Offers</a>
+    <a href="orders.php">Orders</a>
+    <a href="payment_methods.php">Payment Methods</a>
+    <a href="chat.php">Order Chat</a>
+    <a href="notifications.php" id="notifications-link">Notifications<?php echo $unread_count > 0 ? " (" . $unread_count . ")" : ""; ?></a>
     <a href="../logout.php">Logout</a>
+
+    <script src="../assets/js/main.js"></script>
 </body>
 </html>

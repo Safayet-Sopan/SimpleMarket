@@ -10,6 +10,13 @@ function cleanInput($data)
     return htmlspecialchars(stripslashes(trim($data)));
 }
 
+// A valid remember cookie logs you straight back in without showing this form
+try_remember_login($conn);
+if (isset($_SESSION['user_id']) && $_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Location: ' . $_SESSION['role'] . '/dashboard.php');
+    exit;
+}
+
 $flash = null;
 if (isset($_SESSION['flash'])) {
     $flash = $_SESSION['flash'];
@@ -53,9 +60,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         } elseif ($user['status'] === 'pending') {
             $loginErr = "Your seller application is still pending approval";
         } else {
-            $_SESSION['user_id']   = $user['user_id'];
-            $_SESSION['full_name'] = $user['full_name'];
-            $_SESSION['role']      = $user['role'];
+            // login_user() regenerates the session id and, when asked, issues
+            // the remember cookie — see includes/auth.php
+            $remember = isset($_POST['remember']);
+            login_user($conn, $user, $remember);
 
             header('Location: ' . $user['role'] . '/dashboard.php');
             exit;
@@ -89,6 +97,12 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         <input type="password" name="password" placeholder="Password">
         <span class="error"><?php echo $passwordErr; ?></span>
+
+        <label>
+            <input type="checkbox" name="remember" value="1"
+                <?php echo isset($_POST['remember']) ? 'checked' : ''; ?>>
+            Keep me logged in on this device for <?php echo REMEMBER_DAYS; ?> days
+        </label>
 
         <button type="submit">Login</button>
     </form>

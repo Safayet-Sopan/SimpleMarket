@@ -7,7 +7,12 @@
 $host = 'localhost';
 $user = 'root';
 $pass = '';
-$db_name = 'simplemarket_db';
+
+// Normally this is the live database. A caller that has already set $db_name
+// (the test harness) can point this bootstrap at a throwaway database instead.
+if (!isset($db_name)) {
+    $db_name = 'simplemarket_db';
+}
 
 // Connect without selecting a database yet, since it might not exist
 $conn = mysqli_connect($host, $user, $pass);
@@ -56,6 +61,7 @@ $tables['seller_profiles'] = "
         shop_address VARCHAR(255),
         business_type VARCHAR(100),
         commission_rate DECIMAL(5,2) NOT NULL DEFAULT 10.00,
+        payment_methods VARCHAR(255) NOT NULL DEFAULT 'cod',
         approval_status ENUM('pending','approved','rejected') NOT NULL DEFAULT 'pending',
         applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
@@ -105,6 +111,8 @@ $tables['orders'] = "
         commission_amount DECIMAL(10,2) NOT NULL DEFAULT 0,
         total_amount DECIMAL(10,2) NOT NULL,
         status ENUM('pending','confirmed','preparing','out_for_delivery','delivered','cancelled') NOT NULL DEFAULT 'pending',
+        payment_method VARCHAR(20) NOT NULL DEFAULT 'cod',
+        payment_status ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (customer_id) REFERENCES users(user_id) ON DELETE CASCADE,
         FOREIGN KEY (seller_id) REFERENCES seller_profiles(seller_id) ON DELETE CASCADE,
@@ -133,6 +141,7 @@ $tables['offers'] = "
         offered_price DECIMAL(10,2) NOT NULL,
         counter_price DECIMAL(10,2),
         status ENUM('pending','accepted','countered','rejected') NOT NULL DEFAULT 'pending',
+        converted_order_id INT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (product_id) REFERENCES products(product_id) ON DELETE CASCADE,
         FOREIGN KEY (customer_id) REFERENCES users(user_id) ON DELETE CASCADE
@@ -194,6 +203,22 @@ $tables['earnings'] = "
     ) ENGINE=InnoDB
 ";
 
+// Persistent "remember me" logins. The cookie holds a random token; only its
+// SHA-256 hash is stored here, so a leaked database row cannot be replayed as a
+// login cookie. New table, so CREATE TABLE IF NOT EXISTS covers existing
+// installs too — no migration entry needed.
+$tables['remember_tokens'] = "
+    CREATE TABLE IF NOT EXISTS remember_tokens (
+        token_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        token_hash CHAR(64) NOT NULL,
+        expires_at DATETIME NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uq_token_hash (token_hash),
+        FOREIGN KEY (user_id) REFERENCES users(user_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB
+";
+
 $tables['notifications'] = "
     CREATE TABLE IF NOT EXISTS notifications (
         notification_id INT AUTO_INCREMENT PRIMARY KEY,
@@ -205,6 +230,9 @@ $tables['notifications'] = "
     ) ENGINE=InnoDB
 ";
 
+// Seed the category list. INSERT IGNORE + a unique index keeps this safe to re-run.
+$seed_categories = ['Home Food', 'University Merch', 'Boutique & Clothing', 'Handicrafts', 'Electronics'];
+
 $results = [];
 foreach ($tables as $table_name => $sql) {
     if (mysqli_query($conn, $sql)) {
@@ -213,6 +241,65 @@ foreach ($tables as $table_name => $sql) {
         $results[$table_name] = 'FAILED: ' . mysqli_error($conn);
     }
 }
+
+// Migrations for installs created before a column existed. MySQL has no portable
+// "ADD COLUMN IF NOT EXISTS", so each column is checked against information_schema.
+$migrations = [
+    // Links an accepted bid to the order it became, so one bid cannot be
+    // redeemed for more than one discounted order.
+    'offers.converted_order_id' => "ALTER TABLE offers ADD COLUMN converted_order_id INT NULL",
+
+    // Which payment methods a shop accepts, stored as a comma-separated list of
+    // the keys in $PAYMENT_METHODS (config.php). No gateway is involved.
+    'seller_profiles.payment_methods' => "ALTER TABLE seller_profiles ADD COLUMN payment_methods VARCHAR(255) NOT NULL DEFAULT 'cod'",
+
+    // The method the customer picked at checkout, and whether the seller has
+    // confirmed receiving the money.
+    'orders.payment_method' => "ALTER TABLE orders ADD COLUMN payment_method VARCHAR(20) NOT NULL DEFAULT 'cod'",
+    'orders.payment_status' => "ALTER TABLE orders ADD COLUMN payment_status ENUM('unpaid','paid') NOT NULL DEFAULT 'unpaid'",
+];
+
+foreach ($migrations as $target => $sql) {
+    list($mig_table, $mig_column) = explode('.', $target);
+
+    $stmt = mysqli_prepare(
+        $conn,
+        "SELECT COLUMN_NAME FROM information_schema.COLUMNS
+         WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ? AND COLUMN_NAME = ?"
+    );
+    mysqli_stmt_bind_param($stmt, 'sss', $db_name, $mig_table, $mig_column);
+    mysqli_stmt_execute($stmt);
+    $column_exists = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+
+    if ($column_exists) {
+        $results[$target] = 'OK (already present)';
+    } elseif (mysqli_query($conn, $sql)) {
+        $results[$target] = 'OK (added)';
+    } else {
+        $results[$target] = 'FAILED: ' . mysqli_error($conn);
+    }
+}
+
+// Seed categories. category_name has no unique index, so each row is checked
+// individually rather than relying on INSERT IGNORE — keeps this re-runnable.
+$categories_added = 0;
+foreach ($seed_categories as $category_name) {
+    $stmt = mysqli_prepare($conn, "SELECT category_id FROM categories WHERE category_name = ?");
+    mysqli_stmt_bind_param($stmt, 's', $category_name);
+    mysqli_stmt_execute($stmt);
+    $exists = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt));
+    mysqli_stmt_close($stmt);
+
+    if (!$exists) {
+        $stmt = mysqli_prepare($conn, "INSERT INTO categories (category_name) VALUES (?)");
+        mysqli_stmt_bind_param($stmt, 's', $category_name);
+        mysqli_stmt_execute($stmt);
+        mysqli_stmt_close($stmt);
+        $categories_added++;
+    }
+}
+$results['categories (seed)'] = $categories_added . ' new category row(s) added';
 
 mysqli_close($conn);
 ?>

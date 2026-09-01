@@ -6,7 +6,6 @@ require_role('rider');
 // Get this rider's rider_id
 $rider_id = null;
 /** @var mysqli $conn */
-$stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
 $stmt = mysqli_prepare($conn, "SELECT rider_id, vehicle_type, availability_status FROM rider_profiles WHERE user_id = ?");
 mysqli_stmt_bind_param($stmt, 'i', $_SESSION['user_id']);
 mysqli_stmt_execute($stmt);
@@ -36,6 +35,13 @@ if ($rider_id) {
     $total_earnings = mysqli_fetch_assoc($r)['total'];
     mysqli_stmt_close($stmt);
 }
+// Unread notifications, refreshed live by assets/js/main.js
+$unread_count = 0;
+$stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = ? AND is_read = 0");
+mysqli_stmt_bind_param($stmt, 'i', $_SESSION['user_id']);
+mysqli_stmt_execute($stmt);
+$unread_count = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['cnt'];
+mysqli_stmt_close($stmt);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -65,7 +71,12 @@ if ($rider_id) {
     </div>
 
     <a href="profile.php">Update Profile</a>
+    <a href="deliveries.php">Deliveries</a>
+    <a href="chatbox.php">Order Chat</a>
+    <a href="notifications.php" id="notifications-link">Notifications<?php echo $unread_count > 0 ? " (" . $unread_count . ")" : ""; ?></a>
     <a href="../logout.php">Logout</a>
+
+    <script src="../assets/js/main.js"></script>
 </body>
 
 </html>

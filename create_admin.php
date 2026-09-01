@@ -1,5 +1,26 @@
 <?php
 require_once 'includes/db.php';
+require_once 'includes/auth.php';
+
+// This page creates an account with full admin rights, so it is only open while
+// no admin exists yet. Once one does, only a logged-in admin may add another.
+/** @var mysqli $conn */
+$admin_exists = false;
+$result = mysqli_query($conn, "SELECT user_id FROM users WHERE role = 'admin' LIMIT 1");
+if ($result && mysqli_fetch_assoc($result)) {
+    $admin_exists = true;
+}
+
+if ($admin_exists && current_role() !== 'admin') {
+    http_response_code(403);
+    echo '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">'
+        . '<title>Not Available — SimpleMarket</title></head><body>'
+        . '<h1>Admin Setup Closed</h1>'
+        . '<p class="error">An admin account already exists. Sign in as an admin to add another.</p>'
+        . '<p><a href="login.php">Go to login</a></p>'
+        . '</body></html>';
+    exit;
+}
 
 $nameErr = $emailErr = $passwordErr = "";
 $successMsg = "";

@@ -14,7 +14,6 @@ $category_id = $_GET['category_id'] ?? '';
 // Fetch all categories for the filter dropdown
 $categories = [];
 /** @var mysqli $conn */
-$stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
 $result = mysqli_query($conn, "SELECT category_id, category_name FROM categories ORDER BY category_name");
 while ($row = mysqli_fetch_assoc($result)) {
     $categories[] = $row;
@@ -101,6 +100,7 @@ if ($hasSearched) {
                     <th>Category</th>
                     <th>Price</th>
                     <th>Stock</th>
+                    <th>Action</th>
                 </tr>
                 <?php foreach ($products as $p): ?>
                     <tr>
@@ -109,6 +109,14 @@ if ($hasSearched) {
                         <td><?php echo htmlspecialchars($p['category_name'] ?? 'Uncategorized'); ?></td>
                         <td>৳<?php echo number_format($p['price'], 2); ?></td>
                         <td><?php echo $p['stock_quantity'] > 0 ? $p['stock_quantity'] : 'Out of stock'; ?></td>
+                        <td>
+                            <?php if ($p['stock_quantity'] > 0): ?>
+                                <a href="fast_delivery.php?product_id=<?php echo $p['product_id']; ?>">Order Now</a>
+                                <a href="make_offer.php?product_id=<?php echo $p['product_id']; ?>">Make an Offer</a>
+                            <?php else: ?>
+                                Unavailable
+                            <?php endif; ?>
+                        </td>
                     </tr>
                 <?php endforeach; ?>
             </table>

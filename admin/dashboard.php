@@ -6,7 +6,6 @@ require_role('admin');
 // Pending seller approvals
 $pending_sellers = 0;
 /** @var mysqli $conn */
-$stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
 $result = mysqli_query($conn, "SELECT COUNT(*) AS cnt FROM seller_profiles WHERE approval_status = 'pending'");
 if ($row = mysqli_fetch_assoc($result)) {
     $pending_sellers = $row['cnt'];
@@ -27,6 +26,13 @@ if ($row = mysqli_fetch_assoc($result)) {
     $total_orders = $row['cnt'];
     $total_revenue = $row['revenue'];
 }
+// Unread notifications, refreshed live by assets/js/main.js
+$unread_count = 0;
+$stmt = mysqli_prepare($conn, "SELECT COUNT(*) AS cnt FROM notifications WHERE user_id = ? AND is_read = 0");
+mysqli_stmt_bind_param($stmt, 'i', $_SESSION['user_id']);
+mysqli_stmt_execute($stmt);
+$unread_count = mysqli_fetch_assoc(mysqli_stmt_get_result($stmt))['cnt'];
+mysqli_stmt_close($stmt);
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -63,7 +69,11 @@ if ($row = mysqli_fetch_assoc($result)) {
     </div>
 
     <a href="commission_calculator.php">Commission Calculator</a>
+    <a href="sales_overview.php">Sales Overview</a>
+    <a href="notifications.php" id="notifications-link">Notifications<?php echo $unread_count > 0 ? " (" . $unread_count . ")" : ""; ?></a>
     <a href="../logout.php">Logout</a>
+
+    <script src="../assets/js/main.js"></script>
 </body>
 
 </html>

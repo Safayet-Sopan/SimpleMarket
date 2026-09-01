@@ -16,7 +16,6 @@ $results = [];
 if ($hasSearched) {
     $like = "%$keyword%";
     /** @var mysqli $conn */
-    $stmt = mysqli_prepare($conn, "SELECT password_hash FROM users WHERE user_id = ?");
     $stmt = mysqli_prepare(
         $conn,
         "SELECT u.user_id, u.full_name, u.email, u.role, u.status, sp.shop_name
