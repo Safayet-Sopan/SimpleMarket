@@ -1,5 +1,8 @@
 // Order-scoped chat. Polls for new messages on an interval and appends them.
-// No sockets — setInterval + fetch against ajax/poll_messages.php.
+// No sockets — setInterval + fetch against the ajax routes.
+//
+// The endpoints come from data attributes on the panel rather than being
+// hard-coded here, so this file does not need to know the routing scheme.
 (function () {
     var POLL_INTERVAL_MS = 3000;
 
@@ -13,8 +16,15 @@
     }
 
     var orderId = box.getAttribute('data-order-id');
+    var pollUrl = box.getAttribute('data-poll-url');
+    var sendUrl = box.getAttribute('data-send-url');
     var lastId = 0;
     var polling = false;
+
+    if (!pollUrl || !sendUrl) {
+        setStatus('Chat is unavailable on this page.');
+        return;
+    }
 
     function setStatus(text) {
         if (statusLine) {
@@ -48,7 +58,7 @@
         }
         polling = true;
 
-        fetch('../ajax/poll_messages.php?order_id=' + encodeURIComponent(orderId) + '&after_id=' + lastId,
+        fetch(pollUrl + '&order_id=' + encodeURIComponent(orderId) + '&after_id=' + lastId,
               { credentials: 'same-origin' })
             .then(function (response) {
                 if (!response.ok) {
@@ -90,11 +100,14 @@
         var body = new FormData();
         body.append('order_id', orderId);
         body.append('message_text', text);
+        // The endpoint runs the same CSRF check as every page form, so the
+        // token the server put on the <form> has to travel with the request.
+        body.append('csrf_token', form.getAttribute('data-csrf') || '');
 
         input.disabled = true;
         setStatus('Sending…');
 
-        fetch('../ajax/send_message.php', {
+        fetch(sendUrl, {
             method: 'POST',
             body: body,
             credentials: 'same-origin'

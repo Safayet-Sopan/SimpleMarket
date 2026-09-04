@@ -3,10 +3,15 @@
 (function () {
     var POLL_INTERVAL_MS = 15000;
 
+    // The endpoint comes off this script's own tag, so the file does not need
+    // to know the routing scheme.
+    var script = document.currentScript;
+    var pollUrl = script ? script.getAttribute('data-poll-url') : null;
+
     var badge = document.getElementById('unread-badge');
     var link = document.getElementById('notifications-link');
 
-    if (!badge && !link) {
+    if ((!badge && !link) || !pollUrl) {
         return;
     }
 
@@ -21,7 +26,7 @@
     }
 
     function poll() {
-        fetch('../ajax/poll_notifications.php', { credentials: 'same-origin' })
+        fetch(pollUrl, { credentials: 'same-origin' })
             .then(function (response) {
                 if (!response.ok) {
                     throw new Error('Poll failed: ' + response.status);

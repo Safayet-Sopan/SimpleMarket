@@ -1,0 +1,119 @@
+flowchart LR
+    VIS(["Visitor"])
+    CUS(["Customer"])
+    SEL(["Seller"])
+    RID(["Rider"])
+    ADM(["Admin"])
+
+    subgraph SYS["SimpleMarket"]
+        subgraph PUB["Public"]
+            P1("Browse landing page")
+            P2("Register as seller, customer or rider")
+            P3("Log in")
+        end
+        subgraph COM["Shared by every signed-in role"]
+            S1("Search")
+            S2("Manage profile")
+            S3("Change password")
+            S4("View and clear notifications")
+            S5("Log out")
+        end
+        subgraph CUC["Customer"]
+            C1("Browse catalogue")
+            C2("Place order")
+            C3("Choose fast delivery")
+            C4("Place a bid below list price")
+            C5("Accept a counter-offer")
+            C6("Track order")
+            C7("Cancel while pending")
+            C8("Review product")
+            C9("Rate the shop")
+        end
+        subgraph SUC["Seller"]
+            E1("Manage products")
+            E2("See low stock alerts")
+            E3("Confirm and prepare orders")
+            E4("Mark payment received")
+            E5("Accept, reject or counter a bid")
+            E6("Set accepted payment methods")
+        end
+        subgraph RUC["Rider"]
+            D1("See available deliveries")
+            D2("Claim a delivery")
+            D3("Advance delivery status")
+            D4("Manage delivery notes")
+            D5("Calculate earnings")
+        end
+        subgraph AUC["Admin"]
+            M1("Manage user accounts")
+            M2("Approve or reject sellers")
+            M3("Set per-seller commission")
+            M4("View sales overview")
+        end
+        CHAT("Chat on an order")
+    end
+
+    VIS --> P1
+    VIS --> P2
+    VIS --> P3
+
+    CUS --> S1
+    CUS --> S2
+    CUS --> S3
+    CUS --> S4
+    CUS --> S5
+    SEL --> S1
+    SEL --> S2
+    SEL --> S3
+    SEL --> S4
+    SEL --> S5
+    RID --> S1
+    RID --> S2
+    RID --> S3
+    RID --> S4
+    RID --> S5
+    ADM --> S1
+    ADM --> S2
+    ADM --> S3
+    ADM --> S4
+    ADM --> S5
+
+    CUS --> C1
+    CUS --> C2
+    CUS --> C3
+    CUS --> C4
+    CUS --> C5
+    CUS --> C6
+    CUS --> C7
+    CUS --> C8
+    CUS --> C9
+
+    SEL --> E1
+    SEL --> E2
+    SEL --> E3
+    SEL --> E4
+    SEL --> E5
+    SEL --> E6
+
+    RID --> D1
+    RID --> D2
+    RID --> D3
+    RID --> D4
+    RID --> D5
+
+    ADM --> M1
+    ADM --> M2
+    ADM --> M3
+    ADM --> M4
+
+    CUS --> CHAT
+    SEL --> CHAT
+    RID --> CHAT
+
+    C2 -.->|"includes"| C3
+    C5 -.->|"extends"| C2
+    C8 -.->|"requires delivered"| C6
+    C9 -.->|"requires delivered"| C6
+    D2 -.->|"precedes"| D3
+    D3 -.->|"triggers"| D5
+    M2 -.->|"unblocks"| P3

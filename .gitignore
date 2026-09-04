@@ -1,0 +1,9 @@
+# Local tooling and working notes — not part of the shipped project
+.claude/
+design_handoff_simplemarket/
+tests/
+DESIGN.md
+progress.md
+
+# macOS
+.DS_Store

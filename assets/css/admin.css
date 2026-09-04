@@ -1,0 +1,40 @@
+/* SimpleMarket — admin.
+ *
+ * The fired-brick accent is bound by `.role-admin` on <body> in style.css;
+ * nothing here restates a colour. What is left is genuinely admin-only:
+ * the wide oversight tables and the approvals queue.
+ */
+
+/* Approvals is eight columns wide and the widest table in the product.
+ * It scrolls inside its own region rather than pushing the page sideways. */
+.page-seller-approvals .data-table,
+.page-sales-overview .data-table,
+.page-commission-calculator .data-table {
+    display: block;
+    overflow-x: auto;
+    white-space: nowrap;
+}
+
+/* Address and business type are the long free-text columns; let them wrap
+ * so a single verbose shop address cannot stretch the row. */
+.page-seller-approvals .data-table td {
+    white-space: normal;
+    min-width: 8rem;
+}
+
+.page-seller-approvals .data-table td.cell-actions {
+    white-space: nowrap;
+    min-width: 0;
+}
+
+/* Approve and reject sit together — reject never leads. */
+.page-seller-approvals .cell-actions .action-form + .action-form {
+    margin-left: var(--space-sm);
+}
+
+/* The per-seller breakdown ends in a total row: ruled off above, bold. */
+.page-commission-calculator .data-table tr:last-child td,
+.page-sales-overview .data-table tr:last-child td {
+    border-top: var(--rule);
+    font-weight: var(--weight-bold);
+}

@@ -1,0 +1,151 @@
+erDiagram
+    users ||--o| seller_profiles : "registers as"
+    users ||--o| rider_profiles : "registers as"
+    users ||--o{ orders : "places"
+    users ||--o{ offers : "bids"
+    users ||--o{ reviews : "writes"
+    users ||--o{ seller_ratings : "rates"
+    users ||--o{ messages : "sends"
+    users ||--o{ notifications : "receives"
+    users ||--o{ remember_tokens : "holds"
+    seller_profiles ||--o{ products : "lists"
+    seller_profiles ||--o{ orders : "fulfils"
+    seller_profiles ||--o{ seller_ratings : "is rated in"
+    categories ||--o{ products : "groups"
+    products ||--o{ order_items : "sold as"
+    products ||--o{ offers : "receives"
+    products ||--o{ reviews : "is reviewed in"
+    rider_profiles |o--o{ orders : "delivers"
+    rider_profiles ||--o{ earnings : "earns"
+    rider_profiles ||--o{ delivery_notes : "writes"
+    orders ||--|{ order_items : "contains"
+    orders ||--o{ reviews : "unlocks"
+    orders ||--o{ seller_ratings : "unlocks"
+    orders ||--o{ messages : "scopes"
+    orders ||--o| earnings : "pays"
+    orders |o--o{ delivery_notes : "pinned to"
+
+    users {
+        int user_id PK
+        string full_name
+        string email UK
+        string phone
+        string password_hash
+        enum role "admin seller customer rider"
+        enum status "active pending suspended"
+        datetime created_at
+    }
+    seller_profiles {
+        int seller_id PK
+        int user_id FK
+        string shop_name
+        string shop_address
+        decimal commission_rate
+        string payment_methods
+        enum approval_status "pending approved rejected"
+    }
+    rider_profiles {
+        int rider_id PK
+        int user_id FK
+        string vehicle_type
+        string vehicle_plate
+        enum availability_status "available busy offline"
+    }
+    categories {
+        int category_id PK
+        string category_name
+    }
+    products {
+        int product_id PK
+        int seller_id FK
+        int category_id FK
+        string product_name
+        decimal price
+        int stock_quantity
+        int low_stock_threshold
+        string product_image
+        enum status "active inactive"
+    }
+    orders {
+        int order_id PK
+        int customer_id FK
+        int seller_id FK
+        int rider_id FK "nullable"
+        string delivery_address
+        bool fast_delivery
+        decimal delivery_fee
+        decimal subtotal
+        decimal commission_amount
+        decimal total_amount
+        string payment_method
+        enum payment_status "unpaid paid"
+        enum status "pending confirmed preparing out_for_delivery delivered cancelled"
+        datetime created_at
+    }
+    order_items {
+        int order_item_id PK
+        int order_id FK
+        int product_id FK
+        int quantity
+        decimal unit_price
+        decimal line_total
+    }
+    offers {
+        int offer_id PK
+        int product_id FK
+        int customer_id FK
+        decimal offered_price
+        decimal counter_price
+        enum status "pending countered accepted rejected"
+        int converted_order_id "spent once"
+    }
+    reviews {
+        int review_id PK
+        int product_id FK
+        int customer_id FK
+        int order_id FK
+        int rating
+        string comment
+    }
+    seller_ratings {
+        int rating_id PK
+        int seller_id FK
+        int customer_id FK
+        int order_id FK
+        int rating
+        string comment
+    }
+    messages {
+        int message_id PK
+        int order_id FK
+        int sender_id FK
+        string message_text
+        bool is_read
+        datetime sent_at
+    }
+    earnings {
+        int earning_id PK
+        int rider_id FK
+        int order_id FK
+        decimal amount
+        datetime earned_at
+    }
+    delivery_notes {
+        int note_id PK
+        int rider_id FK
+        int order_id FK "nullable"
+        string title
+        string body
+    }
+    notifications {
+        int notification_id PK
+        int user_id FK
+        string message
+        bool is_read
+    }
+    remember_tokens {
+        int token_id PK
+        int user_id FK
+        string token_hash UK
+        datetime expires_at
+    }

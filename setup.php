@@ -203,6 +203,23 @@ $tables['earnings'] = "
     ) ENGINE=InnoDB
 ";
 
+// A rider's own working notes — gate codes, landmarks, "call before arriving".
+// Private to the rider who wrote them, and optionally pinned to one order.
+// New table, so CREATE TABLE IF NOT EXISTS covers existing installs; no
+// migration entry needed.
+$tables['delivery_notes'] = "
+    CREATE TABLE IF NOT EXISTS delivery_notes (
+        note_id INT AUTO_INCREMENT PRIMARY KEY,
+        rider_id INT NOT NULL,
+        order_id INT NULL,
+        title VARCHAR(120) NOT NULL,
+        body TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (rider_id) REFERENCES rider_profiles(rider_id) ON DELETE CASCADE,
+        FOREIGN KEY (order_id) REFERENCES orders(order_id) ON DELETE SET NULL
+    ) ENGINE=InnoDB
+";
+
 // Persistent "remember me" logins. The cookie holds a random token; only its
 // SHA-256 hash is stored here, so a leaked database row cannot be replayed as a
 // login cookie. New table, so CREATE TABLE IF NOT EXISTS covers existing
@@ -232,6 +249,17 @@ $tables['notifications'] = "
 
 // Seed the category list. INSERT IGNORE + a unique index keeps this safe to re-run.
 $seed_categories = ['Home Food', 'University Merch', 'Boutique & Clothing', 'Handicrafts', 'Electronics'];
+
+// The default administrator. Whoever installs this needs a way in, and there is
+// no sign-up path for admins — the register page offers only the other three
+// roles, and the controller re-checks that list server-side.
+//
+// These credentials are published in README.md on purpose, so they are only
+// safe on a local XAMPP install. Change the password from Profile > Change
+// Password before putting this anywhere reachable.
+$seed_admin_name     = 'Administrator';
+$seed_admin_email    = 'admin@simplemarket.local';
+$seed_admin_password = 'admin123';
 
 $results = [];
 foreach ($tables as $table_name => $sql) {
@@ -301,6 +329,32 @@ foreach ($seed_categories as $category_name) {
 }
 $results['categories (seed)'] = $categories_added . ' new category row(s) added';
 
+// Seed the default admin, but only when the install has no admin at all. That
+// guard means re-running this cannot resurrect an admin someone deleted, and
+// cannot reset the password of an admin who already changed it.
+$admin_row = mysqli_fetch_assoc(
+    mysqli_query($conn, "SELECT user_id FROM users WHERE role = 'admin' LIMIT 1")
+);
+
+if ($admin_row) {
+    $results['default admin'] = 'OK (an admin already exists — left untouched)';
+} else {
+    $seed_admin_hash = password_hash($seed_admin_password, PASSWORD_DEFAULT);
+    $stmt = mysqli_prepare(
+        $conn,
+        "INSERT INTO users (full_name, email, password_hash, role, status)
+         VALUES (?, ?, ?, 'admin', 'active')"
+    );
+    mysqli_stmt_bind_param($stmt, 'sss', $seed_admin_name, $seed_admin_email, $seed_admin_hash);
+
+    if (mysqli_stmt_execute($stmt)) {
+        $results['default admin'] = 'OK (created ' . $seed_admin_email . ')';
+    } else {
+        $results['default admin'] = 'FAILED: ' . mysqli_error($conn);
+    }
+    mysqli_stmt_close($stmt);
+}
+
 mysqli_close($conn);
 ?>
 <!DOCTYPE html>
@@ -319,7 +373,15 @@ mysqli_close($conn);
             <li><?php echo htmlspecialchars($table); ?>: <?php echo htmlspecialchars($status); ?></li>
         <?php endforeach; ?>
     </ul>
-    <p>If everything above says "OK", setup is complete. You can now go to <a href="index.php">the homepage</a>.</p>
+    <p>If everything above says "OK", setup is complete. You can now go to
+        <a href="index.php">the homepage</a>.</p>
+
+    <h2>Sign in as the default admin</h2>
+    <p>Email: <code><?php echo htmlspecialchars($seed_admin_email); ?></code><br>
+       Password: <code><?php echo htmlspecialchars($seed_admin_password); ?></code></p>
+    <p><strong>Change this password</strong> from Profile &gt; Change Password before putting
+       this anywhere other than a local machine. Everyone else — sellers, customers and riders —
+       signs up on the Register page; only an existing admin can create another admin.</p>
 </body>
 
 </html>
